@@ -1,0 +1,28 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main",
+    "tray"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-hide",
+    "core:window:allow-set-always-on-top",
+    "opener:default",
+    "store:default",
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-read-text",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://*:*/*" },
+        { "url": "http://*:*/*" },
+        { "url": "https://*/*" },
+        { "url": "http://*/*" }
+      ]
+    }
+  ]
+}
