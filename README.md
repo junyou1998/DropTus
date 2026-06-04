@@ -5,7 +5,7 @@
 <h1 align="center">DropTus</h1>
 
 <p align="center">
-  <strong>DropTus — High-performance Drag & Drop Uploader and Collection Linker for Directus</strong><br />
+  <strong>DropTus — High-performance Drag & Drop Uploader for Directus 'Files' and Collection Linker</strong><br />
   A lightweight cross-platform desktop application built with Tauri v2, Vue 3, and Tailwind CSS v4 to streamline your headless CMS assets workflow.
 </p>
 
@@ -28,9 +28,7 @@
 
 ## 📖 Introduction (English)
 
-**DropTus** is an independent, open-source desktop utility designed to accelerate asset management for **Directus Headless CMS**. Inspired by the high-productivity workflow of PicGo, DropTus allows content creators, editors, and developers to instantly upload local files or screenshots to a Directus server via drag-and-drop. It automatically formats the output into URLs (Raw URL, Markdown, or HTML) and copies them straight to your system clipboard.
-
-Beyond simple file hosting, DropTus features a unique **"Double-step Collection Association"** mechanism. While uploading, it can automatically insert a new record into your specified Directus Collection table, linking the newly uploaded file ID to your designated field. You can even input custom dynamic fields in the UI before dropping, making it the ultimate tool for structured CMS data authoring.
+**DropTus** is an independent, open-source desktop utility specifically tailored for **Directus "Files"** management. It solves the tedious workflow of uploading files and manually associating them with database tables by seamlessly merging **"File Uploading"** and **"Collection Data Linkage & Metadata Maintenance"** into one swift step. Drag and drop screenshots, documents, or media to upload them directly to the Directus server, automatically create corresponding records in your target Collection, and dynamically manage custom metadata before dropping. On success, the formatted link (Raw URL, Markdown, HTML, etc.) is copied to your clipboard instantly, providing developers and content creators with an extremely smooth, automated workflow.
 
 > [!IMPORTANT]
 > **🛡️ Privacy & Security Guarantee**
@@ -65,6 +63,10 @@ Beyond simple file hosting, DropTus features a unique **"Double-step Collection 
 * **Auto-Color Tray Icon**: Leverages macOS Template Image mode to automatically toggle the menu bar icon color between black and white depending on light/dark mode.
 * **System-wide Text Selection Lock**: Configured with `user-select: none` except for input elements, offering a native macOS desktop application feel.
 * **Help Guide**: An onboarding modal with no-emoji Lucide icons guiding users through profiles, templates, and advanced setups in their local language.
+
+### 🔄 6. Auto & Manual Update Checks (Changelog)
+* **Silent Background Auto-Check**: Quietly compares local version with the latest GitHub releases in the background upon application startup.
+* **Manual Verification & Download**: Trigger a manual update check within the Help modal. Once a new version is detected, a custom Update Modal pops up showing the latest release Changelog and provides a link to download.
 
 ---
 
@@ -168,9 +170,7 @@ pnpm tauri build
 
 ## 📖 專案簡介 (繁體中文)
 
-**DropTus** 是一款為 **Directus Headless CMS** 設計的第三方獨立檔案上傳輔助工具。它汲取了 PicGo 的高效生產力工作流，旨在幫助內容創作者、編輯以及開發人員，快速地將本機檔案或截圖直接拖放上傳至 Directus 伺服器，並在完成後自動生成自訂格式的連結（如 Raw URL、Markdown、HTML 等）寫入系統剪貼簿。
-
-除此之外，DropTus 更內建了獨創的 **「雙步連動關聯」** 機制。在上傳檔案的同時，可自動於您指定的 Directus 資料表（Collection）中新增一筆資料並綁定該檔案 ID，甚至支援在拖放前輸入自訂的動態欄位。這使得 DropTus 不僅僅是一個簡單的圖床工具，更是一個能夠與您的 CMS 內容工作流無縫整合的生產力加速器。
+**DropTus** 是一款專為 **Directus 「Files (檔案庫)」**設計的極速上傳輔助工具。它旨在解決傳統檔案上傳後需手動關聯資料表的繁瑣痛點，將「檔案上傳」與「Collection 資料連動建檔、Metadata 維護」兩大步驟融為一體。透過簡單的拖放，您不僅能將截圖、文件等檔案上傳至 Directus 伺服器，還能同步在目標 Collection 中自動新增關聯紀錄，並在拖放前動態填寫自訂的詮釋資料（Metadata）。上傳成功後，系統會自動在剪貼簿中寫入您所選定格式（Raw URL、Markdown、HTML 等）的超連結，為開發者、內容創作者提供極致絲滑的自動化工作流。
 
 > [!IMPORTANT]
 > **🛡️ 隱私與安全聲明**
@@ -208,6 +208,10 @@ pnpm tauri build
 * **黑白自適應圖標**：採用 macOS Template 模式加載托盤圖標，會根據系統 Menu Bar 的淺色/深色外觀自動著色為黑或白，呈現頂級原生視覺。
 * **全域禁用文字選取**：為非輸入區塊配置全域 `user-select: none`，操作手感與原生 macOS App 無異，告別網頁般粗糙的滑鼠選取藍底。
 * **新手指引手冊 (Help Modal)**：內建極簡、精緻的主視窗幫助彈窗，以無 Emoji 的專業 Lucide 圖標及步驟流程圖引導新手快速上手。
+
+### 🔄 6. 自動與手動檢查更新 (Changelog)
+* **背景自動靜默檢查**：應用程式啟動時，於背景無感比對本機版本與 GitHub 最新 Release 釋出版本。
+* **手動一鍵更新檢測**：在 Help 使用說明彈窗中，整合一鍵「檢查更新」功能。若有新版本，即會彈出精心設計的更新 Modal，展示詳細 Release Changelog 更新日誌，並提供直接下載頁面連結。
 
 ---
 
@@ -312,6 +316,18 @@ pnpm tauri build
 1. **資料隱私**：DropTus 的所有配置資訊、連線密鑰與歷史紀錄均儲存於您的本機電腦。本軟體不包含任何第三方數據收集、上傳或追蹤代碼。
 2. **非官方工具**：本專案為第三方獨立開源工具，並非由 Directus 官方團隊提供或維護。
 3. **免責聲明**：使用者需自行承擔使用本軟體時可能產生的伺服器流量、檔案遺失或資料表寫入異常之風險。建議在使用 Collection 關聯寫入前，先於 Directus 測試環境進行測試。
+
+---
+
+## ☕ 贊助與支持 (Support & Sponsor)
+
+如果您覺得 DropTus 對您的工作與開發有所幫助，歡迎點擊下方連結請作者喝杯咖啡！您的支持是專案持續維護與功能改進的最大動力：
+
+<p align="left">
+  <a href="https://www.buymeacoffee.com/junyou" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 48px !important; width: 174px !important;" >
+  </a>
+</p>
 
 ---
 

@@ -114,7 +114,7 @@ export async function login(
     serverUrl: formattedUrl,
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
-    expiresAt: Date.now() + data.expires,
+    expiresAt: Date.now() + (data.expires < 864000 ? data.expires * 1000 : data.expires),
   };
 
   const state = await getAuthState();
@@ -183,6 +183,11 @@ export async function refreshProfileToken(profileId: string): Promise<Profile> {
   const profile = state.profiles.find((p) => p.id === profileId);
   if (!profile) throw new Error("找不到對應的 Profile 設定");
 
+  // 如果是靜態 Token (沒有 refreshToken)，無需也不可進行刷新
+  if (!profile.refreshToken) {
+    return profile;
+  }
+
   const response = await fetch(`${profile.serverUrl}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -202,7 +207,7 @@ export async function refreshProfileToken(profileId: string): Promise<Profile> {
   const { data } = await response.json();
   profile.accessToken = data.access_token;
   profile.refreshToken = data.refresh_token;
-  profile.expiresAt = Date.now() + data.expires;
+  profile.expiresAt = Date.now() + (data.expires < 864000 ? data.expires * 1000 : data.expires);
 
   await saveAuthState(state);
   onTokenRefreshedCallback?.(profile);
@@ -212,6 +217,11 @@ export async function refreshProfileToken(profileId: string): Promise<Profile> {
 export async function getValidAccessToken(): Promise<string> {
   const profile = await getActiveProfile();
   if (!profile) throw new Error("請先登入並設定連線資訊");
+
+  // 如果是靜態 Token (沒有 refreshToken)，直接返回 accessToken，不進行過期刷新判斷
+  if (!profile.refreshToken) {
+    return profile.accessToken;
+  }
 
   const bufferTime = 30000;
   if (Date.now() + bufferTime >= profile.expiresAt) {

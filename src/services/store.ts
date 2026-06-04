@@ -63,57 +63,83 @@ export async function refreshFolders() {
 }
 
 export async function saveAppState() {
-  await saveAuthState({
-    activeProfileId: appState.activeProfileId,
-    profiles: appState.profiles,
-    theme: appState.theme,
-    activeTemplateId: appState.activeTemplateId,
-    templates: appState.templates,
-    sidebarCollapsed: appState.sidebarCollapsed,
-    language: appState.language,
-  });
-  activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
-  activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
-  updateTheme();
-  updateLocale();
-  await refreshFolders();
+  try {
+    await saveAuthState({
+      activeProfileId: appState.activeProfileId,
+      profiles: appState.profiles,
+      theme: appState.theme,
+      activeTemplateId: appState.activeTemplateId,
+      templates: appState.templates,
+      sidebarCollapsed: appState.sidebarCollapsed,
+      language: appState.language,
+    });
+    activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
+    activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
+    updateTheme();
+    updateLocale();
+    await refreshFolders();
+  } catch (err: any) {
+    console.error("Failed to save app state:", err);
+    showToast(`儲存設定失敗: ${err.message || err}`, "error");
+  }
 }
 
 export async function syncAppStateWithStore() {
-  const auth = await getAuthState(true);
-  appState.activeProfileId = auth.activeProfileId;
-  appState.activeTemplateId = auth.activeTemplateId;
-  appState.profiles = auth.profiles;
-  appState.templates = auth.templates;
-  appState.theme = auth.theme;
-  appState.sidebarCollapsed = !!auth.sidebarCollapsed;
-  appState.language = auth.language || "";
+  try {
+    const auth = await getAuthState(true);
+    console.log(`[Store Sync] Loaded auth state. language: "${auth.language}"`);
+    appState.activeProfileId = auth.activeProfileId;
+    appState.activeTemplateId = auth.activeTemplateId;
+    appState.profiles = auth.profiles;
+    appState.templates = auth.templates;
+    appState.theme = auth.theme;
+    appState.sidebarCollapsed = !!auth.sidebarCollapsed;
+    appState.language = auth.language || "";
 
-  activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
-  activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
+    activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
+    activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
 
-  updateTheme();
-  updateLocale();
-  await refreshFolders();
+    updateTheme();
+    updateLocale();
+
+    // 只有 main 視窗需要載入 Directus 資料夾，tray 視窗不渲染資料夾選單，跳過此步以防止 Token 刷新引發的死循環
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const currentWin = getCurrentWindow();
+      if (currentWin.label === "main") {
+        await refreshFolders();
+      }
+    } catch (e) {
+      console.warn("Failed to check window label for folder refresh:", e);
+    }
+  } catch (err: any) {
+    console.error("Failed to sync app state:", err);
+  }
 }
 
 export async function initApp() {
-  const auth = await getAuthState();
-  appState.activeProfileId = auth.activeProfileId;
-  appState.activeTemplateId = auth.activeTemplateId;
-  appState.profiles = auth.profiles;
-  appState.templates = auth.templates;
-  appState.theme = auth.theme;
-  appState.sidebarCollapsed = !!auth.sidebarCollapsed;
-  appState.language = auth.language || "";
+  try {
+    const auth = await getAuthState();
+    appState.activeProfileId = auth.activeProfileId;
+    appState.activeTemplateId = auth.activeTemplateId;
+    appState.profiles = auth.profiles;
+    appState.templates = auth.templates;
+    appState.theme = auth.theme;
+    appState.sidebarCollapsed = !!auth.sidebarCollapsed;
+    appState.language = auth.language || "";
 
-  activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
-  activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
+    activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
+    activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
 
-  const s = await getStore();
-  const savedHistory = await s.get<UploadHistoryItem[]>("history");
-  history.value = savedHistory || [];
+    const s = await getStore();
+    const savedHistory = await s.get<UploadHistoryItem[]>("history");
+    history.value = savedHistory || [];
+  } catch (err: any) {
+    console.error("Initialization warning (Settings/History):", err);
+    showToast(`初始化設定失敗，將使用預設值: ${err.message || err}`, "error");
+  }
 
+  // 確保無論如何都載入主題與語言
   updateTheme();
   updateLocale();
 
@@ -123,25 +149,57 @@ export async function initApp() {
     }
   });
 
-  await refreshFolders();
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const currentWin = getCurrentWindow();
+    if (currentWin.label === "main") {
+      await refreshFolders();
+    }
+  } catch (folderErr) {
+    console.warn("Failed to refresh folders during init:", folderErr);
+  }
 
   // 跨視窗歷史紀錄同步監聽
   try {
     const { listen } = await import("@tauri-apps/api/event");
     await listen("history-updated", async () => {
-      const storeInstance = await getStore();
       try {
-        await storeInstance.reload();
-      } catch (reloadErr) {
-        console.warn("Store reload failed:", reloadErr);
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const currentWin = getCurrentWindow();
+        console.log(`[Store Event] history-updated received in window: ${currentWin.label}`);
+        // 只有非 main 視窗 (即 tray 視窗) 需要從磁碟重載歷史，因為 main 視窗已在記憶體中更新
+        if (currentWin.label !== "main") {
+          const storeInstance = await getStore();
+          try {
+            await storeInstance.reload();
+          } catch (reloadErr) {
+            console.warn("Store reload failed:", reloadErr);
+          }
+          const updatedHistory = await storeInstance.get<UploadHistoryItem[]>("history");
+          history.value = updatedHistory || [];
+          console.log(`[Store Event] History synced. New items count: ${history.value.length}`);
+        }
+      } catch (err) {
+        console.warn("History sync failed:", err);
       }
-      const updatedHistory = await storeInstance.get<UploadHistoryItem[]>("history");
-      history.value = updatedHistory || [];
     });
 
     // 跨視窗 App State 同步監聽
     await listen("app-state-updated", async () => {
-      await syncAppStateWithStore();
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const currentWin = getCurrentWindow();
+        console.log(`[Store Event] app-state-updated received in window: ${currentWin.label}`);
+        // 只有非 main 視窗 (即 tray 視窗) 需要從 store 同步，避免 main 視窗自己寫入後又載入舊快取的 Race Condition
+        if (currentWin.label !== "main") {
+          console.log(`[Store Event] Window is not main (${currentWin.label}), triggering syncAppStateWithStore`);
+          await syncAppStateWithStore();
+          console.log(`[Store Event] Sync finished. Current appState.language is: ${appState.language}, locale is: ${locale.value}`);
+        }
+      } catch (err) {
+        console.error("[Store Event] Error during app-state-updated:", err);
+        await syncAppStateWithStore();
+      }
     });
   } catch (eventErr) {
     console.warn("跨視窗監聽失敗（可能不在 Tauri 環境）：", eventErr);

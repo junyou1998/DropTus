@@ -55,6 +55,21 @@ export const translations: Record<LocaleType, Record<string, any>> = {
         auto: "自動偵測",
         select: "語言設定",
         title: "介面語言"
+      },
+      update: {
+        check: "檢查更新",
+        checking: "正在檢查更新...",
+        newAvailable: "有新版本可用！",
+        alreadyLatest: "目前已是最新版本",
+        foundNew: "發現新版本 {0}",
+        download: "立即下載",
+        later: "稍後再說",
+        changelog: "更新日誌",
+        failed: "檢查更新失敗：{0}"
+      },
+      sponsor: {
+        title: "贊助支持",
+        desc: "如果您覺得 DropTus 對您的工作有所幫助，歡迎請作者喝杯咖啡，支持專案的持續維護與開發！"
       }
     },
     sidebar: {
@@ -73,8 +88,8 @@ export const translations: Record<LocaleType, Record<string, any>> = {
       tabDetails: "進階功能指南",
       intro: {
         welcome: "歡迎使用 DropTus",
-        subtitle: "專為 Directus 設計的極簡檔案上傳工具",
-        desc: "DropTus 是一套專門用來簡化「Directus 檔案上傳」與「資料庫 Collection 關聯」的獨立輔助工具。您可以透過簡單的拖放，立即將您的截圖、相片或文件上傳至指定的 Directus 伺服器，並視需求自動在目標資料表中新增關聯資料，自動產生格式化好的 Markdown、HTML 或原始網址連結並寫入剪貼簿，方便您直接貼入寫作工具或編輯器中。",
+        subtitle: "專為 Directus 設計的極速檔案上傳與資料關聯輔助工具",
+        desc: "DropTus 是一款專為 Directus 「Files (檔案庫)」設計的極速上傳輔助工具。它旨在解決傳統檔案上傳後需手動關聯資料表的繁瑣痛點，將「檔案上傳」與「Collection 資料連動建檔、Metadata 維護」兩大步驟融為一體。透過簡單的拖放，您不僅能將截圖、文件等檔案上傳至 Directus 伺服器，還能同步在目標 Collection 中自動新增關聯紀錄，並在拖放前動態填寫自訂的詮釋資料（Metadata）。上傳成功後，系統會自動在剪貼簿中寫入您所選定格式（Raw URL、Markdown、HTML 等）的超連結，為開發者、內容創作者提供極致絲滑的自動化工作流。",
         privacyTitle: "安全與隱私保障",
         privacyDesc: "您的 Directus 登入憑證、伺服器網址以及所有上傳模板資料，100% 僅儲存於您本機的 settings.json 設定檔中。本應用程式沒有任何中轉雲端伺服器，所有的 API 請求皆由您本機直接發送到您指定的 Directus 伺服器，安全且私密。",
         disclaimerTitle: "非官方獨立工具聲明",
@@ -217,6 +232,21 @@ export const translations: Record<LocaleType, Record<string, any>> = {
         auto: "自动检测",
         select: "语言设置",
         title: "界面语言"
+      },
+      update: {
+        check: "检查更新",
+        checking: "正在检查更新...",
+        newAvailable: "有新版本可用！",
+        alreadyLatest: "目前已是最新版本",
+        foundNew: "发现新版本 {0}",
+        download: "立即下载",
+        later: "稍后再说",
+        changelog: "更新日志",
+        failed: "检查更新失败：{0}"
+      },
+      sponsor: {
+        title: "赞助支持",
+        desc: "如果您觉得 DropTus 对您的工作有所帮助，欢迎请作者喝杯咖啡，支持专案的持续维护与开发！"
       }
     },
     sidebar: {
@@ -235,8 +265,8 @@ export const translations: Record<LocaleType, Record<string, any>> = {
       tabDetails: "进阶功能指南",
       intro: {
         welcome: "欢迎使用 DropTus",
-        subtitle: "专为 Directus 设计的极简文件上传工具",
-        desc: "DropTus 是一套专门用来简化“Directus 文件上传”与“数据库 Collection 关联”的独立辅助工具。您可以透过简单的拖放，立即将您的截图、相片或文件上传至指定的 Directus 服务器，并视需求自动在目标数据表中新增关联数据，自动产生格式化好的 Markdown、HTML 或原始网址链接并写入剪贴板，方便您直接贴入写作工具或编辑器中。",
+        subtitle: "专为 Directus 设计的极速文件上传与数据关联辅助工具",
+        desc: "DropTus 是一款专为 Directus “Files (文件库)”设计的极速上传辅助工具。它旨在解决传统文件上传后需手动关联数据表的繁琐痛点，将“文件上传”与“Collection 数据联动建档、Metadata 维护”两大步骤融为一体。通过简单的拖放，您不仅能将截图、文档等文件上传至 Directus 服务器，还能同步在目标 Collection 中自动新增关联纪录，并在拖放前动态填写自定义的元数据（Metadata）。上传成功后，系统会自动在剪贴板中写入您所选定格式（Raw URL、Markdown、HTML 等）的超链接，为开发者、内容创作者提供极致丝滑的自动化工作流。",
         privacyTitle: "安全与隐私保障",
         privacyDesc: "您的 Directus 登录凭证、服务器网址以及所有上传模板数据，100% 仅存储在您本地的 settings.json 配置文件中。本应用没有任何中转云端服务器，所有的 API 请求皆由您本地直接发送到您指定的 Directus 服务器，安全且私密。",
         disclaimerTitle: "非官方独立工具声明",
@@ -379,6 +409,21 @@ export const translations: Record<LocaleType, Record<string, any>> = {
         auto: "Auto Detect",
         select: "Language Settings",
         title: "Language"
+      },
+      update: {
+        check: "Check for Updates",
+        checking: "Checking for updates...",
+        newAvailable: "New Version Available!",
+        alreadyLatest: "Already the latest version",
+        foundNew: "New version {0} available",
+        download: "Download Now",
+        later: "Later",
+        changelog: "Changelog",
+        failed: "Failed to check updates: {0}"
+      },
+      sponsor: {
+        title: "Sponsor",
+        desc: "If you find DropTus helpful, feel free to buy me a coffee to support its maintenance and development!"
       }
     },
     sidebar: {
@@ -397,8 +442,8 @@ export const translations: Record<LocaleType, Record<string, any>> = {
       tabDetails: "Advanced Guide",
       intro: {
         welcome: "Welcome to DropTus",
-        subtitle: "A lightweight file upload helper for Directus",
-        desc: "DropTus is an independent helper tool designed to simplify 'Directus File Uploads' and 'Database Collection Associations'. Drag and drop images, screenshots, or files to upload them to Directus and auto-generate clean URLs (Raw URL, Markdown, or HTML) directly to your clipboard for quick paste operations.",
+        subtitle: "A Fast File Uploader & Data Linkage Tool Built for Directus",
+        desc: "DropTus is a fast file uploader specifically tailored for Directus \"Files\" management. It solves the tedious workflow of uploading files and manually associating them with database tables by seamlessly merging \"File Uploading\" and \"Collection Data Linkage & Metadata Maintenance\" into one swift step. With a simple drag and drop, you can upload screenshots, documents, or media to Directus, automatically create corresponding records in your target Collection, and dynamically manage custom metadata before dropping. On success, the formatted link (Raw URL, Markdown, HTML, etc.) is copied to your clipboard instantly, providing developers and content creators with an extremely smooth, automated workflow.",
         privacyTitle: "Security & Privacy Guarantee",
         privacyDesc: "Credentials (Email, Password, Tokens), server URLs, and templates are 100% saved locally on your computer in your settings.json file. No cloud servers are used. All API requests go directly from your local machine to your Directus server.",
         disclaimerTitle: "Unofficial Helper Tool Disclaimer",
@@ -541,6 +586,21 @@ export const translations: Record<LocaleType, Record<string, any>> = {
         auto: "自動検出",
         select: "言語設定",
         title: "インターフェース言語"
+      },
+      update: {
+        check: "更新チェック",
+        checking: "更新をチェック中...",
+        newAvailable: "新しいバージョンがあります！",
+        alreadyLatest: "すでに最新バージョンです",
+        foundNew: "新バージョン {0} が利用可能です",
+        download: "今すぐダウンロード",
+        later: "後で",
+        changelog: "更新履歴",
+        failed: "更新チェックに失敗しました: {0}"
+      },
+      sponsor: {
+        title: "スポンサー",
+        desc: "もしDropTusがお役に立てましたら、著者にコーヒーを一杯ごちそうして、プロジェクトの継続的な開発をサポートしてください！"
       }
     },
     sidebar: {
@@ -559,8 +619,8 @@ export const translations: Record<LocaleType, Record<string, any>> = {
       tabDetails: "高度なガイド",
       intro: {
         welcome: "DropTusへようこそ",
-        subtitle: "Directus専用の極めてシンプルなアップロード補助ツール",
-        desc: "DropTusは、「Directusへのファイルアップロード」と「データベースコレクションの自動連携」を簡略化するために設計された、独立したサードパーティ製の補助ツールです。簡単なドラッグ＆ドロップ操作で画像やスクリーンショットをサーバーにアップロードし、コピー可能なフォーマット済みのリンク（Raw URL、Markdown、またはHTML）をクリップボードに自動生成します。",
+        subtitle: "Directus向けに設計された高速ファイルアップローダー＆データ連携支援ツール",
+        desc: "DropTusは、Directusの「Files」ファイル管理に特化して設計された高速アップロード支援ツールです。ファイルアップロード後に手動でデータベースに紐付けるという煩雑な手順を解決し、「ファイルのアップロード」と「コレクションの連動作成・メタデータ（Metadata）入力」を1つのステップに融合させました。ドラッグ＆ドロップするだけで、スクリーンショットやドキュメントなどのファイルをDirectusにアップロードできるだけでなく、同時に対象のコレクションに関連付けレコードを自動追加し、ドロップ前にカスタムメタデータを動的に入力できます。アップロード成功後は、フォーマット済みリンク（Raw URL、Markdown、HTMLなど）がクリップボードに自動コピーされ、開発者やクリエイターに非常にスムーズな自動化ワークフローを提供します。",
         privacyTitle: "安全とプライバシーの保証",
         privacyDesc: "接続情報（メールアドレス、パスワード、トークン）、サーバーURL、テンプレートなどのデータは、100%お使いのPCの settings.json ファイルにのみ保存されます。クラウドサーバーは一切経由せず、すべてのAPIリクエストはPCからDirectusサーバーに直接送信されます。",
         disclaimerTitle: "非公式独立ツールに関する声明",
@@ -703,6 +763,21 @@ export const translations: Record<LocaleType, Record<string, any>> = {
         auto: "자동 감지",
         select: "언어 설정",
         title: "인터페이스 언어"
+      },
+      update: {
+        check: "업데이트 확인",
+        checking: "업데이트 확인 중...",
+        newAvailable: "새 버전 이용 가능!",
+        alreadyLatest: "이미 최신 버전입니다",
+        foundNew: "새 버전 {0} 이용 가능",
+        download: "지금 다운로드",
+        later: "나중에",
+        changelog: "업데이트 내용",
+        failed: "업데이트 확인 실패: {0}"
+      },
+      sponsor: {
+        title: "후원",
+        desc: "DropTus가 작업에 도움이 되었다면 저자에게 커피 한 잔을 후원하여 프로젝트의 지속적인 유지 관리를 지원해 주세요!"
       }
     },
     sidebar: {
@@ -721,8 +796,8 @@ export const translations: Record<LocaleType, Record<string, any>> = {
       tabDetails: "고급 가이드",
       intro: {
         welcome: "DropTus에 오신 것을 환영합니다",
-        subtitle: "Directus 전용 초간편 파일 업로드 보조 도구",
-        desc: "DropTus는 'Directus 파일 업로드'와 '데이터베이스 컬렉션 자동 연동'을 단순화하기 위해 설계된 독립 서드파티 보조 도구입니다. 간단한 드래그 앤 드롭 동작으로 이미지나 스크린샷을 서버에 업로드하고, 클립보드에 복사 가능한 형식의 링크(Raw URL, Markdown, HTML)를 자동으로 생성해 줍니다.",
+        subtitle: "Directus를 위한 고속 파일 업로더 및 데이터 연동 지원 도구",
+        desc: "DropTus는 Directus \"Files\" 파일 관리에 특화되어 설계된 고속 업로드 지원 도구입니다. 파일 업로드 후 수동으로 데이터베이스 테이블에 연결해야 하는 번거로운 작업을 해결하기 위해 \"파일 업로드\"와 \"컬렉션 데이터 연동 및 메타데이터(Metadata) 관리\"라는 두 가지 단계를 하나로 결합했습니다. 드래그 앤 드롭만으로 스크린샷, 문서 또는 미디어를 Directus에 업로드하는 동시에 대상 컬렉션에 연관 레코드를 자동으로 생성하고, 파일 드롭 전에 커스텀 메타데이터를 동적으로 작성할 수 있습니다. 업로드 성공 시 포맷된 링크(Raw URL, Markdown, HTML 등)가 클립보드에 즉시 복사되어, 개발자와 콘텐츠 크리에이터에게 매우 매끄럽고 자동화된 워크플로를 제공합니다하고 있습니다.",
         privacyTitle: "보안 및 개인정보 보장",
         privacyDesc: "로그인 증명(이메일, 비밀번호, 토큰), 서버 URL, 템플릿 등의 모든 데이터는 100% 사용자의 PC settings.json 파일에만 저장됩니다. 어떠한 클라우드 서버도 경유하지 않으며, 모든 API 요청은 로컬 머신에서 Directus 서버로 직접 전송됩니다.",
         disclaimerTitle: "비공식 독립 도구 선언",

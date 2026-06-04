@@ -16,12 +16,16 @@ pub fn init_tray<R: Runtime>(app: &App<R>) -> Result<(), tauri::Error> {
         .item(&quit_i)
         .build()?;
 
+    #[cfg(target_os = "macos")]
     let icon_bytes = include_bytes!("../icons/white_logo.png");
+    #[cfg(not(target_os = "macos"))]
+    let icon_bytes = include_bytes!("../icons/32x32.png");
+
     let icon = Image::from_bytes(icon_bytes)?;
 
     let _tray = TrayIconBuilder::with_id("main_tray")
         .icon(icon)
-        .icon_as_template(true)
+        .icon_as_template(cfg!(target_os = "macos"))
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app_handle, event| match event.id.as_ref() {

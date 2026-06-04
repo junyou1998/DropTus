@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
-import { initApp, activeProfile, appState, saveAppState, toasts } from "./services/store";
+import { initApp, activeProfile, appState, saveAppState, showToast, toasts } from "./services/store";
 import { t } from "./services/i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import AuthManager from "./components/AuthManager.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
 import UploadPanel from "./components/UploadPanel.vue";
 import HistoryList from "./components/HistoryList.vue";
 import TrayPanel from "./components/TrayPanel.vue";
-import { Upload, Settings, Database, Sun, Moon, Monitor, ChevronLeft, ChevronRight, Clock, CheckCircle, XCircle, Info, HelpCircle, X, Shield, AlertTriangle, Sparkles, Link2, Layers, FileCheck2, Globe, GitMerge } from "lucide-vue-next";
+import { Upload, Settings, Database, Sun, Moon, Monitor, ChevronLeft, ChevronRight, Clock, CheckCircle, XCircle, Info, HelpCircle, X, Shield, AlertTriangle, Sparkles, Link2, Layers, FileCheck2, Globe, GitMerge, Github, Heart, ExternalLink } from "lucide-vue-next";
 import { version as appVersion } from "../package.json";
 
 const currentTab = ref<"upload" | "history" | "profiles" | "settings">("upload");
@@ -24,6 +25,62 @@ const langOptions = computed(() => [
   { value: "ko", label: "한국어" },
 ]);
 
+// 更新檢查與贊助功能相關變數
+const isCheckingUpdate = ref(false);
+const latestVersion = ref("");
+const changelogText = ref("");
+const showUpdateModal = ref(false);
+
+function isNewerVersion(current: string, latest: string): boolean {
+  const cleanCur = current.replace(/^v/, "").trim();
+  const cleanLat = latest.replace(/^v/, "").trim();
+  if (cleanCur === cleanLat) return false;
+  const curParts = cleanCur.split(".").map(x => parseInt(x, 10) || 0);
+  const latParts = cleanLat.split(".").map(x => parseInt(x, 10) || 0);
+  for (let i = 0; i < Math.max(curParts.length, latParts.length); i++) {
+    const curVal = curParts[i] || 0;
+    const latVal = latParts[i] || 0;
+    if (latVal > curVal) return true;
+    if (latVal < curVal) return false;
+  }
+  return false;
+}
+
+async function checkUpdate(manual = false) {
+  if (isCheckingUpdate.value) return;
+  isCheckingUpdate.value = true;
+  try {
+    const res = await fetch("https://api.github.com/repos/junyou1998/DropTus/releases/latest");
+    if (!res.ok) throw new Error(`HTTP status ${res.status}`);
+    const data = await res.json();
+    const latest = data.tag_name || "";
+    const body = data.body || "";
+    latestVersion.value = latest;
+    changelogText.value = body;
+
+    if (isNewerVersion(appVersion, latest)) {
+      showUpdateModal.value = true;
+    } else if (manual) {
+      showToast(t("common.update.alreadyLatest"), "success");
+    }
+  } catch (err: any) {
+    console.error("Check update failed:", err);
+    if (manual) {
+      showToast(t("common.update.failed").replace("{0}", err.message || err), "error");
+    }
+  } finally {
+    isCheckingUpdate.value = false;
+  }
+}
+
+async function openExternalUrl(url: string) {
+  try {
+    await openUrl(url);
+  } catch (err) {
+    console.error("Failed to open url:", err);
+  }
+}
+
 onMounted(async () => {
   await initApp();
   try {
@@ -37,6 +94,13 @@ onMounted(async () => {
   window.addEventListener("click", () => {
     showLangMenu.value = false;
   });
+
+  // 啟動後延遲 3 秒靜默檢查更新
+  setTimeout(() => {
+    if (!isTrayWindow.value) {
+      checkUpdate(false);
+    }
+  }, 3000);
 });
 
 async function toggleTheme() {
@@ -90,6 +154,15 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
 
       <!-- 右側控制與指示器 -->
       <div class="flex items-center gap-4">
+        <!-- GitHub 按鈕 -->
+        <button
+          @click="openExternalUrl('https://github.com/junyou1998/DropTus')"
+          class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+          title="GitHub"
+        >
+          <Github class="w-4 h-4" />
+        </button>
+
         <!-- 新手說明按鈕 -->
         <button
           @click="showHelpModal = true"
@@ -299,6 +372,15 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
       >
         <!-- 右側控制與指示器 -->
         <div class="flex items-center gap-4">
+          <!-- GitHub 按鈕 -->
+          <button
+            @click="openExternalUrl('https://github.com/junyou1998/DropTus')"
+            class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+            title="GitHub"
+          >
+            <Github class="w-4 h-4" />
+          </button>
+
           <!-- 新手說明按鈕 -->
           <button
             @click="showHelpModal = true"
@@ -392,7 +474,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
     </div>
 
     <!-- Toast 提示區 -->
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none">
+    <div class="fixed bottom-6 right-6 z-60 flex flex-col gap-2.5 max-w-sm pointer-events-none">
       <TransitionGroup name="toast">
         <div
           v-for="toast in toasts"
@@ -500,6 +582,59 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                   {{ t('help.intro.disclaimerDesc') }}
                 </p>
               </div>
+
+              <!-- 贊助支持與更新區塊 (不搶眼但自然融合) -->
+              <div class="pt-2 border-t border-neutral-100 dark:border-neutral-800/60 flex flex-col sm:flex-row items-stretch justify-between gap-4">
+                <!-- 贊助支持卡片 -->
+                <div class="flex-1 p-4 bg-rose-500/5 dark:bg-rose-500/10 rounded-2xl border border-rose-500/15 dark:border-rose-500/10 flex flex-col gap-3">
+                  <div class="space-y-1">
+                    <h4 class="font-bold text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                      <Heart class="w-3.5 h-3.5 text-rose-500 shrink-0 fill-rose-500/10" />
+                      {{ t('common.sponsor.title') }}
+                    </h4>
+                    <p class="text-[11px] text-neutral-500 dark:text-neutral-400 leading-normal">
+                      {{ t('common.sponsor.desc') }}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <button 
+                      @click="openExternalUrl('https://www.buymeacoffee.com/junyou')"
+                      class="inline-block hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <img 
+                        src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" 
+                        alt="Buy Me A Coffee" 
+                        class="h-10 w-auto rounded-lg shadow-sm border border-amber-300/40"
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 版本資訊與手動更新檢查 -->
+                <div class="w-full sm:w-48 p-4 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-2xl border border-indigo-500/15 dark:border-indigo-500/10 flex flex-col justify-between gap-3">
+                  <div class="space-y-1">
+                    <h4 class="font-bold text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                      <Sparkles class="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      {{ t('common.update.changelog') }}
+                    </h4>
+                    <div class="text-[11px] text-neutral-500 dark:text-neutral-400">
+                      <span>{{ t('help.intro.welcome') }} v{{ appVersion }}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <button
+                      @click="checkUpdate(true)"
+                      :disabled="isCheckingUpdate"
+                      class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-300 dark:disabled:bg-neutral-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm shadow-indigo-600/10 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <span v-if="isCheckingUpdate" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>{{ isCheckingUpdate ? t('common.update.checking') : t('common.update.check') }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Tab 2: 新手引導流程 -->
@@ -514,7 +649,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 
                 <!-- 步驟 1 -->
                 <div class="relative">
-                  <span class="absolute -left-[27px] top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">1</span>
+                  <span class="absolute -left-6.75 top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">1</span>
                   <div class="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200/50 dark:border-neutral-850 rounded-2xl p-3.5 space-y-1.5">
                     <h4 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
                       {{ t('help.flow.step1') }}
@@ -528,7 +663,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
 
                 <!-- 步驟 2 -->
                 <div class="relative">
-                  <span class="absolute -left-[27px] top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">2</span>
+                  <span class="absolute -left-6.75 top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">2</span>
                   <div class="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200/50 dark:border-neutral-850 rounded-2xl p-3.5 space-y-1.5">
                     <h4 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
                       {{ t('help.flow.step2') }}
@@ -542,7 +677,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
 
                 <!-- 步驟 3 -->
                 <div class="relative">
-                  <span class="absolute -left-[27px] top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">3</span>
+                  <span class="absolute -left-6.75 top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">3</span>
                   <div class="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200/50 dark:border-neutral-850 rounded-2xl p-3.5 space-y-1.5">
                     <h4 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
                       {{ t('help.flow.step3') }}
@@ -602,13 +737,75 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
 
           </div>
 
-          <!-- 彈窗底部 -->
-          <div class="px-6 py-3.5 bg-neutral-50 dark:bg-neutral-800/40 border-t border-neutral-100 dark:border-neutral-800/60 shrink-0 flex justify-end">
-            <button
-              @click="showHelpModal = false"
-              class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm shadow-indigo-600/10 transition-all"
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 版本更新提示彈窗 -->
+    <Transition name="modal">
+      <div 
+        v-if="showUpdateModal" 
+        class="fixed inset-0 z-55 flex items-center justify-center p-4 bg-neutral-950/40 dark:bg-neutral-950/60 backdrop-blur-md"
+        @click.self="showUpdateModal = false"
+      >
+        <div class="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-3xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden transform transition-all select-none animate-fade-in">
+          
+          <!-- 頂部與標題 -->
+          <div class="px-6 pt-5 pb-3 border-b border-neutral-100 dark:border-neutral-800/60 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
+                <Sparkles class="w-4 h-4" />
+              </div>
+              <h2 class="text-sm font-bold text-neutral-800 dark:text-white">
+                {{ t('common.update.newAvailable') }}
+              </h2>
+            </div>
+            <button 
+              @click="showUpdateModal = false"
+              class="p-1.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer"
             >
-              {{ t('common.confirm') }}
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- 內容：新版本說明與 Changelog -->
+          <div class="p-6 space-y-4">
+            <div class="flex items-center justify-between text-xs font-semibold bg-neutral-50 dark:bg-neutral-800/30 p-3 rounded-2xl border border-neutral-100 dark:border-neutral-850">
+              <div class="text-neutral-500">{{ t('help.intro.welcome') }}</div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-neutral-455 text-neutral-400 line-through">v{{ appVersion }}</span>
+                <span class="text-neutral-400">→</span>
+                <span class="px-2 py-0.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md font-bold">
+                  {{ latestVersion }}
+                </span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <h4 class="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
+                <Info class="w-3.5 h-3.5 text-indigo-500" />
+                {{ t('common.update.changelog') }}
+              </h4>
+              <div class="bg-neutral-50 dark:bg-neutral-800/40 p-4 rounded-2xl max-h-[30vh] overflow-y-auto text-xs font-sans whitespace-pre-wrap leading-relaxed select-text border border-neutral-100 dark:border-neutral-850 text-neutral-600 dark:text-neutral-300">
+                {{ changelogText || 'No changelog details provided.' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部按鈕 -->
+          <div class="px-6 py-4 bg-neutral-50 dark:bg-neutral-800/40 border-t border-neutral-100 dark:border-neutral-800/60 flex items-center justify-end gap-2 shrink-0">
+            <button
+              @click="showUpdateModal = false"
+              class="px-4 py-2 border border-neutral-200 dark:border-neutral-700 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl text-xs font-semibold cursor-pointer transition-all"
+            >
+              {{ t('common.update.later') }}
+            </button>
+            <button
+              @click="openExternalUrl('https://github.com/junyou1998/DropTus/releases')"
+              class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm shadow-indigo-600/10 transition-all flex items-center gap-1.5"
+            >
+              <span>{{ t('common.update.download') }}</span>
+              <ExternalLink class="w-3.5 h-3.5" />
             </button>
           </div>
 
