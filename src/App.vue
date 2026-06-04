@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { initApp, activeProfile, appState, saveAppState, toasts } from "./services/store";
+import { t } from "./services/i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import AuthManager from "./components/AuthManager.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
@@ -12,6 +13,16 @@ import { version as appVersion } from "../package.json";
 
 const currentTab = ref<"upload" | "history" | "profiles" | "settings">("upload");
 const isTrayWindow = ref(false);
+const showLangMenu = ref(false);
+
+const langOptions = computed(() => [
+  { value: "", label: t("common.language.auto") },
+  { value: "en", label: "English" },
+  { value: "zh-CN", label: "简体中文" },
+  { value: "zh-TW", label: "繁體中文 (台灣)" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+]);
 
 onMounted(async () => {
   await initApp();
@@ -21,6 +32,11 @@ onMounted(async () => {
   } catch (e) {
     isTrayWindow.value = false;
   }
+
+  // 監聽全域點擊以關閉語言下拉選單
+  window.addEventListener("click", () => {
+    showLangMenu.value = false;
+  });
 });
 
 async function toggleTheme() {
@@ -36,6 +52,12 @@ async function toggleTheme() {
 
 async function toggleSidebar() {
   appState.sidebarCollapsed = !appState.sidebarCollapsed;
+  await saveAppState();
+}
+
+async function changeLang(lang: string) {
+  appState.language = lang;
+  showLangMenu.value = false;
   await saveAppState();
 }
 
@@ -72,19 +94,47 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
         <button
           @click="showHelpModal = true"
           class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center animate-fade-in"
-          title="使用說明與引導手冊"
+          :title="t('sidebar.help')"
         >
           <HelpCircle class="w-4 h-4" />
         </button>
+
+        <!-- 語言切換選單 -->
+        <div class="relative">
+          <button
+            @click.stop="showLangMenu = !showLangMenu"
+            class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+            :title="t('common.language.select')"
+          >
+            <Globe class="w-4 h-4" />
+          </button>
+          
+          <div
+            v-if="showLangMenu"
+            class="absolute right-0 mt-2 w-40 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200/60 dark:border-neutral-800/80 rounded-2xl shadow-xl z-50 py-1.5"
+            @click.stop
+          >
+            <button
+              v-for="lang in langOptions"
+              :key="lang.value"
+              @click="changeLang(lang.value)"
+              class="w-full px-4 py-2 text-left text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer flex items-center justify-between"
+              :class="appState.language === lang.value ? 'text-indigo-600 dark:text-indigo-400' : 'text-neutral-700 dark:text-neutral-300'"
+            >
+              <span>{{ lang.label }}</span>
+              <span v-if="appState.language === lang.value" class="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400"></span>
+            </button>
+          </div>
+        </div>
 
         <!-- 主題切換按鈕 -->
         <button
           @click="toggleTheme"
           class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center"
           :title="
-            appState.theme === 'light' ? '目前為淺色模式，點擊切換為深色模式' :
-            appState.theme === 'dark' ? '目前為深色模式，點擊切換為跟隨系統' :
-            '目前為跟隨系統，點擊切換為淺色模式'
+            appState.theme === 'light' ? t('common.theme.descLight') :
+            appState.theme === 'dark' ? t('common.theme.descDark') :
+            t('common.theme.descSystem')
           "
         >
           <Sun v-if="appState.theme === 'light'" class="w-4 h-4" />
@@ -99,7 +149,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
             :class="activeProfile ? 'bg-emerald-500 shadow-md shadow-emerald-500/50' : 'bg-red-400'"
           ></span>
           <span class="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-            {{ activeProfile ? activeProfile.name : '未連線' }}
+            {{ activeProfile ? activeProfile.name : t('common.disconnected') }}
           </span>
         </div>
       </div>
@@ -149,7 +199,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
         >
           <button
             @click="currentTab = 'upload'"
-            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold animate-fade-in"
+            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold"
             :class="[
               currentTab === 'upload'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -158,15 +208,15 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 ? 'md:w-10 md:h-10 md:rounded-xl md:p-0 md:justify-center px-3 py-1.5 rounded-xl' 
                 : 'md:w-full md:px-4 md:py-3 md:rounded-2xl md:justify-start gap-2.5 px-3 py-2 rounded-2xl'
             ]"
-            title="上傳工作區"
+            :title="t('sidebar.upload')"
           >
             <Upload class="w-4 h-4 shrink-0" />
-            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">上傳作業</span>
+            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">{{ t('sidebar.upload') }}</span>
           </button>
 
           <button
             @click="currentTab = 'history'"
-            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold animate-fade-in"
+            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold"
             :class="[
               currentTab === 'history'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -175,15 +225,15 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 ? 'md:w-10 md:h-10 md:rounded-xl md:p-0 md:justify-center px-3 py-1.5 rounded-xl' 
                 : 'md:w-full md:px-4 md:py-3 md:rounded-2xl md:justify-start gap-2.5 px-3 py-2 rounded-2xl'
             ]"
-            title="歷史紀錄"
+            :title="t('sidebar.history')"
           >
             <Clock class="w-4 h-4 shrink-0" />
-            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">歷史紀錄</span>
+            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">{{ t('sidebar.history') }}</span>
           </button>
 
           <button
             @click="currentTab = 'profiles'"
-            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold animate-fade-in"
+            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold"
             :class="[
               currentTab === 'profiles'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -192,15 +242,15 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 ? 'md:w-10 md:h-10 md:rounded-xl md:p-0 md:justify-center px-3 py-1.5 rounded-xl' 
                 : 'md:w-full md:px-4 md:py-3 md:rounded-2xl md:justify-start gap-2.5 px-3 py-2 rounded-2xl'
             ]"
-            title="伺服器 Profile"
+            :title="t('sidebar.profiles')"
           >
             <Database class="w-4 h-4 shrink-0" />
-            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">伺服器 Profile</span>
+            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">{{ t('sidebar.profiles') }}</span>
           </button>
 
           <button
             @click="currentTab = 'settings'"
-            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold animate-fade-in"
+            class="flex items-center justify-center transition-all cursor-pointer whitespace-nowrap text-xs md:text-sm font-semibold"
             :class="[
               currentTab === 'settings'
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -209,10 +259,10 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 ? 'md:w-10 md:h-10 md:rounded-xl md:p-0 md:justify-center px-3 py-1.5 rounded-xl' 
                 : 'md:w-full md:px-4 md:py-3 md:rounded-2xl md:justify-start gap-2.5 px-3 py-2 rounded-2xl'
             ]"
-            title="模板設定"
+            :title="t('sidebar.settings')"
           >
             <Settings class="w-4 h-4 shrink-0" />
-            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">模板設定</span>
+            <span :class="['hidden sm:inline', appState.sidebarCollapsed ? 'md:hidden' : 'md:inline']">{{ t('sidebar.settings') }}</span>
           </button>
         </div>
       </div>
@@ -231,11 +281,11 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
               ? 'w-10 h-10 rounded-xl justify-center p-0' 
               : 'w-full px-4 py-2.5 rounded-2xl justify-start gap-2.5 text-xs font-semibold'
           ]"
-          :title="appState.sidebarCollapsed ? '展開側邊欄' : '收合側邊欄'"
+          :title="appState.sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapsed')"
         >
           <ChevronRight v-if="appState.sidebarCollapsed" class="w-4 h-4 shrink-0" />
           <ChevronLeft v-else class="w-4 h-4 shrink-0" />
-          <span v-if="!appState.sidebarCollapsed" class="whitespace-nowrap">收合側欄</span>
+          <span v-if="!appState.sidebarCollapsed" class="whitespace-nowrap">{{ t('sidebar.collapsed') }}</span>
         </button>
       </div>
     </div>
@@ -253,19 +303,47 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
           <button
             @click="showHelpModal = true"
             class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center animate-fade-in"
-            title="使用說明與引導手冊"
+            :title="t('sidebar.help')"
           >
             <HelpCircle class="w-4 h-4" />
           </button>
+
+          <!-- 語言切換選單 -->
+          <div class="relative">
+            <button
+              @click.stop="showLangMenu = !showLangMenu"
+              class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+              :title="t('common.language.select')"
+            >
+              <Globe class="w-4 h-4" />
+            </button>
+            
+            <div
+              v-if="showLangMenu"
+              class="absolute right-0 mt-2 w-40 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200/60 dark:border-neutral-800/80 rounded-2xl shadow-xl z-50 py-1.5"
+              @click.stop
+            >
+              <button
+                v-for="lang in langOptions"
+                :key="lang.value"
+                @click="changeLang(lang.value)"
+                class="w-full px-4 py-2 text-left text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer flex items-center justify-between"
+                :class="appState.language === lang.value ? 'text-indigo-600 dark:text-indigo-400' : 'text-neutral-700 dark:text-neutral-300'"
+              >
+                <span>{{ lang.label }}</span>
+                <span v-if="appState.language === lang.value" class="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400"></span>
+              </button>
+            </div>
+          </div>
 
           <!-- 主題切換按鈕 -->
           <button
             @click="toggleTheme"
             class="p-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-all cursor-pointer flex items-center justify-center"
             :title="
-              appState.theme === 'light' ? '目前為淺色模式，點擊切換為深色模式' :
-              appState.theme === 'dark' ? '目前為深色模式，點擊切換為跟隨系統' :
-              '目前為跟隨系統，點擊切換為淺色模式'
+              appState.theme === 'light' ? t('common.theme.descLight') :
+              appState.theme === 'dark' ? t('common.theme.descDark') :
+              t('common.theme.descSystem')
             "
           >
             <Sun v-if="appState.theme === 'light'" class="w-4 h-4" />
@@ -280,7 +358,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
               :class="activeProfile ? 'bg-emerald-500 shadow-md shadow-emerald-500/50' : 'bg-red-400'"
             ></span>
             <span class="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-              {{ activeProfile ? `連線至：${activeProfile.name}` : '未連線' }}
+              {{ activeProfile ? t('tray.statusConnected', activeProfile.name) : t('common.disconnected') }}
             </span>
           </div>
         </div>
@@ -345,7 +423,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
               <div class="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
                 <HelpCircle class="w-4 h-4" />
               </div>
-              <h2 class="text-sm font-bold text-neutral-800 dark:text-white">DropTus 新手指南與宣告</h2>
+              <h2 class="text-sm font-bold text-neutral-800 dark:text-white">{{ t('help.title') }}</h2>
             </div>
             
             <button 
@@ -363,21 +441,21 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
               class="px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all"
               :class="activeHelpTab === 'intro' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/40'"
             >
-              簡介與聲明
+              {{ t('help.tabIntro') }}
             </button>
             <button
               @click="activeHelpTab = 'flow'"
               class="px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all"
               :class="activeHelpTab === 'flow' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/40'"
             >
-              新手引導流程
+              {{ t('help.tabFlow') }}
             </button>
             <button
               @click="activeHelpTab = 'details'"
               class="px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all"
               :class="activeHelpTab === 'details' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/40'"
             >
-              進階功能指南
+              {{ t('help.tabDetails') }}
             </button>
           </div>
 
@@ -392,34 +470,34 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 </div>
                 <div>
                   <h3 class="font-extrabold text-sm text-neutral-800 dark:text-white flex items-center gap-1.5">
-                    歡迎使用 DropTus
+                    {{ t('help.intro.welcome') }}
                     <Sparkles class="w-4 h-4 text-indigo-500 shrink-0" />
                   </h3>
-                  <p class="text-[10px] text-neutral-400">專為 Directus 設計的極簡檔案上傳工具</p>
+                  <p class="text-[10px] text-neutral-400">{{ t('help.intro.subtitle') }}</p>
                 </div>
               </div>
               
               <p class="text-neutral-500 dark:text-neutral-400">
-                DropTus 是一套專門用來簡化「Directus 檔案上傳」與「資料庫 Collection 關聯」的獨立輔助工具。您可以透過簡單的拖放，立即將您的截圖、相片或文件上傳至指定的 Directus 伺服器，並視需求自動在目標資料表中新增關聯資料，自動產生格式化好的 Markdown、HTML 或原始網址連結並寫入剪貼簿，方便您直接貼入寫作工具或編輯器中。
+                {{ t('help.intro.desc') }}
               </p>
 
               <div class="p-4 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/15 dark:border-emerald-500/10 space-y-1.5">
                 <h4 class="font-bold text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                   <Shield class="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  安全與隱私保障
+                  {{ t('help.intro.privacyTitle') }}
                 </h4>
                 <p class="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                  您的 Directus 登入憑證、伺服器網址以及所有上傳模板資料，<strong>100% 僅儲存於您本機的 settings.json 設定檔中</strong>。本應用程式沒有任何中轉雲端伺服器，所有的 API 請求皆由您本機直接發送到您指定的 Directus 伺服器，安全且私密。
+                  {{ t('help.intro.privacyDesc') }}
                 </p>
               </div>
 
               <div class="p-4 bg-amber-500/5 dark:bg-amber-500/10 rounded-2xl border border-amber-500/15 dark:border-amber-500/10 space-y-1.5">
                 <h4 class="font-bold text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                   <AlertTriangle class="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  非官方獨立工具聲明
+                  {{ t('help.intro.disclaimerTitle') }}
                 </h4>
                 <p class="text-[11px] text-amber-700/80 dark:text-amber-400/80">
-                  本軟體為第三方獨立開發之社群輔助工具，並非由 Directus 官方（Monospace Ltd）直接提供、維護或背書。
+                  {{ t('help.intro.disclaimerDesc') }}
                 </p>
               </div>
             </div>
@@ -428,7 +506,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
             <div v-else-if="activeHelpTab === 'flow'" class="space-y-5">
               <h3 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
                 <Layers class="w-4 h-4 text-indigo-500 shrink-0" />
-                簡單三步驟，快速上手
+                {{ t('help.flow.title') }}
               </h3>
               
               <!-- 步驟流程圖 -->
@@ -439,11 +517,11 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                   <span class="absolute -left-[27px] top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">1</span>
                   <div class="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200/50 dark:border-neutral-850 rounded-2xl p-3.5 space-y-1.5">
                     <h4 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
-                      設定伺服器連線 Profile
+                      {{ t('help.flow.step1') }}
                       <Link2 class="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 shrink-0" />
                     </h4>
                     <p class="text-[11px] text-neutral-400 dark:text-neutral-500">
-                      點擊側邊欄的「<strong>伺服器 Profile</strong>」分頁，輸入您的 Directus 伺服器網址與帳密進行登入。系統會安全地儲存登入快取，並在背景自動刷新憑證（Token Refresh），維持連線可用性。
+                      {{ t('help.flow.step1Desc') }}
                     </p>
                   </div>
                 </div>
@@ -453,11 +531,11 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                   <span class="absolute -left-[27px] top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">2</span>
                   <div class="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200/50 dark:border-neutral-850 rounded-2xl p-3.5 space-y-1.5">
                     <h4 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
-                      建立您的上傳模板
+                      {{ t('help.flow.step2') }}
                       <Settings class="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 shrink-0" />
                     </h4>
                     <p class="text-[11px] text-neutral-400 dark:text-neutral-500">
-                      點擊側邊欄的「<strong>系統模板設定</strong>」，新增一個模板。在此您可以設定：上傳到的 Directus 資料夾、自訂檔案重命名規則（支援隨機數、UUID 等）、防重複上傳檢測，以及最重要的「<strong>雙步 Collection 關聯</strong>」（上傳完後自動把檔案 ID 寫入到特定資料表中，並可設定動態的額外欄位）。
+                      {{ t('help.flow.step2Desc') }}
                     </p>
                   </div>
                 </div>
@@ -467,11 +545,11 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                   <span class="absolute -left-[27px] top-0 w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-neutral-900 shadow-sm shadow-indigo-600/15">3</span>
                   <div class="bg-neutral-50 dark:bg-neutral-800/20 border border-neutral-200/50 dark:border-neutral-850 rounded-2xl p-3.5 space-y-1.5">
                     <h4 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
-                      拖放檔案，自動複製
+                      {{ t('help.flow.step3') }}
                       <Upload class="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 shrink-0" />
                     </h4>
                     <p class="text-[11px] text-neutral-400 dark:text-neutral-500">
-                      回到「<strong>上傳工作區</strong>」，選定您的 Profile 與上傳模板，直接將您的圖片或檔案拖曳到上傳框中。上傳成功後，系統會自動在剪貼簿中寫入您所選定格式（Raw URL、Markdown、HTML 等）的超連結！
+                      {{ t('help.flow.step3Desc') }}
                     </p>
                   </div>
                 </div>
@@ -483,7 +561,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
             <div v-else-if="activeHelpTab === 'details'" class="space-y-4">
               <h3 class="font-bold text-neutral-800 dark:text-white text-xs flex items-center gap-1.5">
                 <Sparkles class="w-4 h-4 text-indigo-500 shrink-0" />
-                進階核心功能解密
+                {{ t('help.details.title') }}
               </h3>
               
               <div class="divide-y divide-neutral-100 dark:divide-neutral-800/60">
@@ -491,10 +569,10 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 <div class="py-3.5 space-y-1">
                   <h4 class="font-bold text-neutral-800 dark:text-neutral-200 text-xs flex items-center gap-2">
                     <FileCheck2 class="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                    MD5 防重複上傳
+                    {{ t('help.details.md5Title') }}
                   </h4>
                   <p class="text-[11px] text-neutral-400 dark:text-neutral-500">
-                    啟用後，DropTus 會在上傳前計算檔案的 MD5 值並向伺服器查詢。若該檔案已存在，會直接使用舊檔連結，<strong>省去重複上傳相同檔案的流量與伺服器儲存空間</strong>。
+                    {{ t('help.details.md5Desc') }}
                   </p>
                 </div>
 
@@ -502,10 +580,10 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 <div class="py-3.5 space-y-1">
                   <h4 class="font-bold text-neutral-800 dark:text-neutral-200 text-xs flex items-center gap-2">
                     <Globe class="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                    S3 CDN 直連網址改寫
+                    {{ t('help.details.pathTitle') }}
                   </h4>
                   <p class="text-[11px] text-neutral-400 dark:text-neutral-500">
-                    若您的 Directus 儲存端點配置了 AWS S3 或自訂 CDN。您可以設定一個 CDN 前綴，DropTus 產生的連結就會直接改寫為指向該 CDN 位址，<strong>繞過 Directus 後端代理直接獲取資源</strong>，提升載入速度。
+                    {{ t('help.details.pathDesc') }}
                   </p>
                 </div>
 
@@ -513,10 +591,10 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
                 <div class="py-3.5 space-y-1">
                   <h4 class="font-bold text-neutral-800 dark:text-neutral-200 text-xs flex items-center gap-2">
                     <GitMerge class="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                    雙步 Collection 關聯與動態欄位
+                    {{ t('help.details.relationTitle') }}
                   </h4>
                   <p class="text-[11px] text-neutral-400 dark:text-neutral-500">
-                    這能在上傳檔案（第一步）的同時，於您指定的 Collection 中新增一筆紀錄（第二步），並將檔案關聯寫入。例如上傳一張相片，在 `photos` 表中新增一筆 `file_id` 為該相片的紀錄，同時讓您在拖放上傳前，動態輸入該筆資料的 `title` 或 `description`！
+                    {{ t('help.details.relationDesc') }}
                   </p>
                 </div>
               </div>
@@ -530,7 +608,7 @@ const activeHelpTab = ref<"intro" | "flow" | "details">("intro");
               @click="showHelpModal = false"
               class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm shadow-indigo-600/10 transition-all"
             >
-              我知道了
+              {{ t('common.confirm') }}
             </button>
           </div>
 

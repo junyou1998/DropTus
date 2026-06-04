@@ -38,6 +38,7 @@ export interface AuthState {
   activeTemplateId: string | null;
   templates: UploadTemplate[];
   sidebarCollapsed?: boolean;
+  language?: string;
 }
 
 export interface Folder {
@@ -71,6 +72,7 @@ export async function getAuthState(forceReload: boolean = false): Promise<AuthSt
     activeTemplateId: null,
     templates: [],
     sidebarCollapsed: false,
+    language: "",
   };
 }
 

@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { appState, saveAppState, syncAppStateWithStore } from "../services/store";
 import { login, testNewConnection, testProfileConnection } from "../services/directus";
+import { t } from "../services/i18n";
 import { Server, User, Lock, Plus, Trash, Check, AlertCircle, Eye, EyeOff, Activity, RefreshCw, Loader2, Pencil } from "lucide-vue-next";
 
 const serverUrl = ref("");
@@ -50,7 +51,7 @@ async function handleLogin() {
 
 async function handleCreateProfile() {
   if (!serverUrl.value || !email.value || !password.value || !profileName.value) {
-    errorMsg.value = "請填寫所有登入欄位";
+    errorMsg.value = t("upload.errorNoProfile");
     return;
   }
 
@@ -60,7 +61,7 @@ async function handleCreateProfile() {
 
   try {
     await login(serverUrl.value, email.value, password.value, profileName.value);
-    successMsg.value = "登入成功！";
+    successMsg.value = t("common.success");
     // 清空輸入
     serverUrl.value = "";
     email.value = "";
@@ -70,7 +71,7 @@ async function handleCreateProfile() {
     await syncAppStateWithStore();
   } catch (err: any) {
     console.error("Login error:", err);
-    errorMsg.value = err.message || (typeof err === "string" ? err : JSON.stringify(err)) || "登入失敗，請檢查網路與設定";
+    errorMsg.value = err.message || (typeof err === "string" ? err : JSON.stringify(err)) || t("auth.statusFailed");
   } finally {
     isLoading.value = false;
   }
@@ -78,7 +79,7 @@ async function handleCreateProfile() {
 
 async function handleSaveEdit() {
   if (!profileName.value || !serverUrl.value) {
-    errorMsg.value = "請填寫連線名稱與伺服器網址";
+    errorMsg.value = t("upload.errorNoProfile");
     return;
   }
 
@@ -96,7 +97,7 @@ async function handleSaveEdit() {
     if (isUrlChanged || isAuthProvided) {
       // 如果改了網址，或提供了新帳密，就必須重新驗證登入
       if (!email.value || !password.value) {
-        throw new Error("修改伺服器網址或重新驗證時，必須輸入電子信箱與密碼");
+        throw new Error(t("auth.tokenExpired"));
       }
 
       const oldId = editingProfileId.value;
@@ -118,12 +119,12 @@ async function handleSaveEdit() {
       await saveAppState();
     }
 
-    successMsg.value = "修改儲存成功！";
+    successMsg.value = t("common.success");
     cancelEdit();
     await syncAppStateWithStore();
   } catch (err: any) {
     console.error("Save edit error:", err);
-    errorMsg.value = err.message || "儲存修改失敗，請檢查輸入與網路";
+    errorMsg.value = err.message || t("auth.statusFailed");
   } finally {
     isLoading.value = false;
   }
@@ -131,7 +132,7 @@ async function handleSaveEdit() {
 
 async function handleTestNewConnection() {
   if (!serverUrl.value || !email.value || !password.value) {
-    errorMsg.value = "請填寫伺服器網址、電子信箱與密碼以進行連線測試";
+    errorMsg.value = t("upload.errorNoProfile");
     return;
   }
 
@@ -141,10 +142,10 @@ async function handleTestNewConnection() {
 
   try {
     await testNewConnection(serverUrl.value, email.value, password.value);
-    successMsg.value = "連線測試成功！伺服器回應正常。";
+    successMsg.value = t("auth.statusConnected");
   } catch (err: any) {
     console.error("Test connection error:", err);
-    errorMsg.value = err.message || "連線測試失敗，請檢查網路與設定";
+    errorMsg.value = err.message || t("auth.statusFailed");
   } finally {
     isTestingNew.value = false;
   }
@@ -166,7 +167,7 @@ async function handleTestProfileConnection(profileId: string) {
   } catch (err: any) {
     console.error(`Profile test error for ${profileId}:`, err);
     testStates.value[profileId] = "failed";
-    testErrors.value[profileId] = err.message || "連線失敗";
+    testErrors.value[profileId] = err.message || t("auth.statusFailed");
   }
 }
 
@@ -176,11 +177,13 @@ async function selectProfile(id: string) {
 }
 
 async function deleteProfile(id: string) {
-  appState.profiles = appState.profiles.filter((p) => p.id !== id);
-  if (appState.activeProfileId === id) {
-    appState.activeProfileId = appState.profiles[0]?.id || null;
+  if (confirm(t("auth.deleteConfirm"))) {
+    appState.profiles = appState.profiles.filter((p) => p.id !== id);
+    if (appState.activeProfileId === id) {
+      appState.activeProfileId = appState.profiles[0]?.id || null;
+    }
+    await saveAppState();
   }
-  await saveAppState();
 }
 </script>
 
@@ -189,12 +192,12 @@ async function deleteProfile(id: string) {
     <div class="bg-white dark:bg-neutral-800 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-700/80 shadow-sm">
       <h2 class="text-xl font-bold text-neutral-800 dark:text-white mb-4 flex items-center gap-2">
         <Server class="w-5 h-5 text-indigo-500" />
-        {{ editingProfileId ? "編輯連線 Profile (重新驗證)" : "登入 Directus 伺服器" }}
+        {{ editingProfileId ? t("auth.editProfile") : t("auth.login") }}
       </h2>
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">連線名稱</label>
+          <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">{{ t("auth.name") }}</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
               <User class="w-4 h-4" />
@@ -202,7 +205,7 @@ async function deleteProfile(id: string) {
             <input
               type="text"
               v-model="profileName"
-              placeholder="例如：公司開發環境"
+              placeholder="e.g. My Directus Profile"
               autocapitalize="none"
               autocorrect="off"
               spellcheck="false"
@@ -212,7 +215,7 @@ async function deleteProfile(id: string) {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">Directus 伺服器網址</label>
+          <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">{{ t("auth.url") }}</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
               <Server class="w-4 h-4" />
@@ -232,7 +235,7 @@ async function deleteProfile(id: string) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">
-              電子信箱 <span v-if="editingProfileId" class="text-xs text-neutral-400 font-normal">(不修改驗證請留空)</span>
+              {{ t("auth.email") }} <span v-if="editingProfileId" class="text-[10px] text-neutral-400 font-normal">({{ t("common.cancel") }})</span>
             </label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
@@ -252,7 +255,7 @@ async function deleteProfile(id: string) {
 
           <div>
             <label class="block text-sm font-medium text-neutral-600 dark:text-neutral-300 mb-1">
-              密碼 <span v-if="editingProfileId" class="text-xs text-neutral-400 font-normal">(不修改驗證請留空)</span>
+              {{ t("auth.password") }} <span v-if="editingProfileId" class="text-[10px] text-neutral-400 font-normal">({{ t("common.cancel") }})</span>
             </label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
@@ -297,7 +300,7 @@ async function deleteProfile(id: string) {
               :disabled="isLoading"
               class="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-700/60 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 font-medium text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span>取消編輯</span>
+              <span>{{ t("common.cancel") }}</span>
             </button>
             <button
               type="submit"
@@ -306,7 +309,7 @@ async function deleteProfile(id: string) {
             >
               <Check v-if="!isLoading" class="w-4 h-4" />
               <Loader2 v-else class="w-4 h-4 animate-spin" />
-              <span>{{ isLoading ? "儲存中..." : "儲存修改" }}</span>
+              <span>{{ isLoading ? t("common.saving") : t("common.save") }}</span>
             </button>
           </template>
           <template v-else>
@@ -318,7 +321,7 @@ async function deleteProfile(id: string) {
             >
               <Activity v-if="!isTestingNew" class="w-4 h-4" />
               <Loader2 v-else class="w-4 h-4 animate-spin" />
-              <span>{{ isTestingNew ? "測試中..." : "測試連線" }}</span>
+              <span>{{ isTestingNew ? t("common.loading") : t("auth.statusConnected") }}</span>
             </button>
             <button
               type="submit"
@@ -326,7 +329,7 @@ async function deleteProfile(id: string) {
               class="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-400 text-white font-medium text-sm rounded-xl transition-all shadow-sm shadow-indigo-600/10 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Plus v-if="!isLoading" class="w-4 h-4" />
-              <span>{{ isLoading ? "登入中..." : "新增並啟用 Profile" }}</span>
+              <span>{{ isLoading ? t("common.loading") : t("auth.addProfile") }}</span>
             </button>
           </template>
         </div>
@@ -335,11 +338,11 @@ async function deleteProfile(id: string) {
 
     <div class="bg-white dark:bg-neutral-800 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-700/80 shadow-sm">
       <h2 class="text-xl font-bold text-neutral-800 dark:text-white mb-4">
-        連線 Profile 列表
+        {{ t("auth.title") }}
       </h2>
 
       <div v-if="appState.profiles.length === 0" class="text-center py-6 text-neutral-400 text-sm">
-        目前無設定檔，請於上方新增您的第一個 Profile
+        {{ t("common.noData") }}
       </div>
 
       <div v-else class="space-y-2">
@@ -379,27 +382,27 @@ async function deleteProfile(id: string) {
                 v-if="!testStates[profile.id] || testStates[profile.id] === 'success'"
                 @click.stop="handleTestProfileConnection(profile.id)"
                 class="p-1.5 text-neutral-400 hover:text-indigo-500 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all cursor-pointer flex items-center gap-1"
-                title="測試此連線"
+                :title="t('auth.statusConnected')"
               >
                 <RefreshCw v-if="!testStates[profile.id]" class="w-3.5 h-3.5" />
                 <span v-else class="text-[10px] text-emerald-500 font-semibold flex items-center gap-0.5">
-                  <Check class="w-3 h-3" /> 正常
+                  <Check class="w-3 h-3" /> {{ t("auth.statusConnected") }}
                 </span>
               </button>
               
               <div v-else-if="testStates[profile.id] === 'testing'" class="p-1.5 text-indigo-500 flex items-center gap-1 select-none">
                 <Loader2 class="w-3.5 h-3.5 animate-spin" />
-                <span class="text-[10px]">測試中</span>
+                <span class="text-[10px]">{{ t("common.loading") }}</span>
               </div>
               
               <button
                 v-else-if="testStates[profile.id] === 'failed'"
                 @click.stop="handleTestProfileConnection(profile.id)"
                 class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-                :title="testErrors[profile.id] || '連線失敗，點擊重新測試'"
+                :title="testErrors[profile.id] || t('auth.statusFailed')"
               >
                 <AlertCircle class="w-3.5 h-3.5" />
-                <span class="text-[10px] underline decoration-dotted">異常</span>
+                <span class="text-[10px] underline decoration-dotted">{{ t("auth.statusFailed") }}</span>
               </button>
             </div>
 
@@ -407,7 +410,7 @@ async function deleteProfile(id: string) {
             <button
               @click.stop="startEdit(profile)"
               class="p-1.5 text-neutral-400 hover:text-indigo-500 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all cursor-pointer"
-              title="編輯此 Profile"
+              :title="t('auth.editProfile')"
             >
               <Pencil class="w-4 h-4" />
             </button>
@@ -424,4 +427,3 @@ async function deleteProfile(id: string) {
     </div>
   </div>
 </template>
-

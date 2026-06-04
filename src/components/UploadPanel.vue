@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { appState, activeProfile, activeTemplate, saveAppState, addHistoryItem, showToast } from "../services/store";
 import { uploadToDirectus, associateCollection } from "../services/directus";
 import { formatLink, copyToClipboard } from "../services/uploader";
+import { t } from "../services/i18n";
 import { UploadCloud, CheckCircle, XCircle, Copy, RefreshCw, FileText, ChevronDown, Check } from "lucide-vue-next";
 
 const isDragging = ref(false);
@@ -40,8 +41,6 @@ const dynamicFieldsToRender = computed(() => {
 });
 
 const isUploading = computed(() => uploadQueue.value.some(item => item.status === "uploading"));
-
-
 
 // 自訂 Select 選單狀態與行為
 const isOpenProfile = ref(false);
@@ -119,7 +118,6 @@ onUnmounted(() => {
   window.removeEventListener("click", handleOutsideClick);
 });
 
-
 // 觸發本地檔案選擇
 function triggerFileSelect() {
   const input = document.createElement("input");
@@ -154,11 +152,11 @@ function handleDrop(e: DragEvent) {
 
 function addFilesToQueue(files: File[]) {
   if (!activeProfile.value) {
-    alert("請先登入或選擇有效的 Profile");
+    alert(t("upload.errorNoProfile"));
     return;
   }
   if (!activeTemplate.value) {
-    alert("請先選擇上傳模板");
+    alert(t("upload.errorNoTemplate"));
     return;
   }
 
@@ -210,7 +208,7 @@ async function processQueue() {
       result.url = `${prefix}/${result.filename_disk}`;
     }
 
-    // 如果有雙步關聯 (即使是重複檔案也進行關聯，內部會自動判斷 POST 還是 PATCH 更新)
+    // 如果有雙步關聯
     if (template.collectionName && template.fileFieldName) {
       const fields = (template.dynamicFields || []).map(f => ({
         name: f.name,
@@ -229,10 +227,10 @@ async function processQueue() {
       const pattern = activeCustomPattern.value || template.customPattern || "";
       const formatted = formatLink(result.url, result.name, format, pattern);
       await copyToClipboard(formatted);
-      showToast(`已自動複製連結：${result.name}`, "success");
+      showToast(t("upload.uploadSuccessNotify"), "success");
     } catch (clipErr: any) {
-      console.warn("自動複製至剪貼簿失敗（可能因視窗失焦限制，您可以點擊手動複製）：", clipErr);
-      showToast(`上傳成功，但自動複製失敗（請手動複製）`, "info");
+      console.warn("自動複製至剪貼簿失敗：", clipErr);
+      showToast(t("common.success"), "info");
     }
 
     // 加入歷史紀錄
@@ -249,7 +247,7 @@ async function processQueue() {
 
   } catch (err: any) {
     pendingItem.status = "failed";
-    pendingItem.error = err.message || "上傳失敗";
+    pendingItem.error = err.message || t("common.failed");
 
     // 失敗也加入歷史
     await addHistoryItem({
@@ -279,16 +277,15 @@ async function copySingleItem(item: { id: string; resultUrl?: string; name: stri
     const formatted = formatLink(item.resultUrl, item.name, format, pattern);
     await copyToClipboard(formatted);
     
-    // 設定複製成功狀態，過 1.5 秒自動回復
     copiedItemIds.value[item.id] = true;
     setTimeout(() => {
       copiedItemIds.value[item.id] = false;
     }, 1500);
 
-    showToast("已成功複製連結至剪貼簿！", "success");
+    showToast(t("common.copied"), "success");
   } catch (err: any) {
     console.error("個別複製連結失敗：", err);
-    showToast("複製連結失敗，請手動選取複製！", "error");
+    showToast(t("common.failed"), "error");
   }
 }
 
@@ -300,17 +297,16 @@ function clearQueue() {
 <template>
   <div class="flex flex-col gap-6 md:flex-1 md:min-h-0">
     <!-- 下拉控制列 -->
-    <!-- 下拉控制列 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-neutral-800 p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-700/80 shadow-sm">
       <div class="profile-select-container">
-        <label class="block text-xs font-semibold text-neutral-500 mb-1">選擇連線 Profile</label>
+        <label class="block text-xs font-semibold text-neutral-500 mb-1">{{ t("upload.selectProfile") }}</label>
         <div class="relative">
           <button
             type="button"
             @click.stop="isOpenProfile = !isOpenProfile; isOpenTemplate = false; isOpenLinkFormat = false; openDynamicSelects = {};"
             class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-800 dark:text-white flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
           >
-            <span class="truncate">{{ appState.profiles.find(p => p.id === appState.activeProfileId)?.name || '請選擇連線...' }}</span>
+            <span class="truncate">{{ appState.profiles.find(p => p.id === appState.activeProfileId)?.name || t("upload.selectProfile") + '...' }}</span>
             <ChevronDown class="w-3.5 h-3.5 text-neutral-400 transition-transform shrink-0 ml-1" :class="{ 'rotate-180': isOpenProfile }" />
           </button>
           
@@ -323,7 +319,7 @@ function clearQueue() {
               class="px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer flex items-center justify-between"
               :class="{ 'font-semibold bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400': appState.activeProfileId === null }"
             >
-              <span>請選擇連線...</span>
+              <span>{{ t("upload.selectProfile") }}...</span>
               <Check v-if="appState.activeProfileId === null" class="w-3.5 h-3.5 text-indigo-500" />
             </div>
             <div
@@ -341,14 +337,14 @@ function clearQueue() {
       </div>
 
       <div class="template-select-container">
-        <label class="block text-xs font-semibold text-neutral-500 mb-1">選擇上傳模板</label>
+        <label class="block text-xs font-semibold text-neutral-500 mb-1">{{ t("upload.selectTemplate") }}</label>
         <div class="relative">
           <button
             type="button"
             @click.stop="isOpenTemplate = !isOpenTemplate; isOpenProfile = false; isOpenLinkFormat = false; openDynamicSelects = {};"
             class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-800 dark:text-white flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
           >
-            <span class="truncate">{{ appState.templates.find(t => t.id === appState.activeTemplateId)?.name || '請選擇模板...' }}</span>
+            <span class="truncate">{{ appState.templates.find(t => t.id === appState.activeTemplateId)?.name || t("upload.selectTemplate") + '...' }}</span>
             <ChevronDown class="w-3.5 h-3.5 text-neutral-400 transition-transform shrink-0 ml-1" :class="{ 'rotate-180': isOpenTemplate }" />
           </button>
           
@@ -361,25 +357,25 @@ function clearQueue() {
               class="px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer flex items-center justify-between"
               :class="{ 'font-semibold bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400': appState.activeTemplateId === null }"
             >
-              <span>請選擇模板...</span>
+              <span>{{ t("upload.selectTemplate") }}...</span>
               <Check v-if="appState.activeTemplateId === null" class="w-3.5 h-3.5 text-indigo-500" />
             </div>
             <div
-              v-for="t in appState.templates"
-              :key="t.id"
-              @click="selectTemplate(t.id); isOpenTemplate = false;"
+              v-for="tData in appState.templates"
+              :key="tData.id"
+              @click="selectTemplate(tData.id); isOpenTemplate = false;"
               class="px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer flex items-center justify-between"
-              :class="{ 'font-semibold bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400': t.id === appState.activeTemplateId }"
+              :class="{ 'font-semibold bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400': tData.id === appState.activeTemplateId }"
             >
-              <span class="truncate mr-2">{{ t.name }}</span>
-              <Check v-if="t.id === appState.activeTemplateId" class="w-3.5 h-3.5 text-indigo-500" />
+              <span class="truncate mr-2">{{ tData.name }}</span>
+              <Check v-if="tData.id === appState.activeTemplateId" class="w-3.5 h-3.5 text-indigo-500" />
             </div>
           </div>
         </div>
       </div>
 
       <div class="link-format-select-container">
-        <label class="block text-xs font-semibold text-neutral-500 mb-1">複製連結格式</label>
+        <label class="block text-xs font-semibold text-neutral-500 mb-1">{{ t("upload.selectFormat") }}</label>
         <div class="relative">
           <button
             type="button"
@@ -389,10 +385,10 @@ function clearQueue() {
           >
             <span class="truncate">
               {{ 
-                !activeTemplate ? '請先選擇模板...' :
-                activeLinkFormat === 'url' ? '僅網址 (Raw URL)' :
+                !activeTemplate ? t("upload.errorNoTemplate") :
+                activeLinkFormat === 'url' ? 'Raw URL' :
                 activeLinkFormat === 'markdown' ? 'Markdown (![alt](url))' :
-                activeLinkFormat === 'html' ? 'HTML (<img />)' : '自訂樣板'
+                activeLinkFormat === 'html' ? 'HTML (<img />)' : 'Custom Template'
               }}
             </span>
             <ChevronDown class="w-3.5 h-3.5 text-neutral-400 transition-transform shrink-0 ml-1" :class="{ 'rotate-180': isOpenLinkFormat }" />
@@ -404,10 +400,10 @@ function clearQueue() {
           >
             <div
               v-for="opt in [
-                { val: 'url', label: '僅網址 (Raw URL)' },
+                { val: 'url', label: 'Raw URL' },
                 { val: 'markdown', label: 'Markdown (![alt](url))' },
                 { val: 'html', label: 'HTML (<img />)' },
-                { val: 'custom', label: '自訂樣板' }
+                { val: 'custom', label: 'Custom Template' }
               ]"
               :key="opt.val"
               @click="selectLinkFormat(opt.val)"
@@ -423,11 +419,11 @@ function clearQueue() {
 
       <!-- 當選擇自訂樣板時，額外展開輸入框 (跨滿 3 欄) -->
       <div v-if="activeLinkFormat === 'custom' && activeTemplate" class="col-span-1 md:col-span-3 pt-2 border-t border-neutral-100 dark:border-neutral-700/60">
-        <label class="block text-xs font-semibold text-neutral-500 mb-1">自訂連結樣板 (可用 {url}, {filename})</label>
+        <label class="block text-xs font-semibold text-neutral-500 mb-1">Custom Format (use {url}, {filename})</label>
         <input
           type="text"
           v-model="activeCustomPattern"
-          placeholder="例如：url={url}&size=large"
+          placeholder="e.g. url={url}&size=large"
           autocapitalize="none"
           autocorrect="off"
           spellcheck="false"
@@ -436,11 +432,11 @@ function clearQueue() {
       </div>
     </div>
 
-    <!-- 動態關聯欄位輸入區 (如果有設定的話) -->
+    <!-- 動態關聯欄位輸入區 -->
     <div v-if="dynamicFieldsToRender.length > 0" class="bg-indigo-50/10 dark:bg-neutral-800/40 p-5 rounded-2xl border border-indigo-500/20 dark:border-neutral-700/80 space-y-3">
       <div class="font-bold text-xs text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
         <FileText class="w-4 h-4 text-indigo-500" />
-        請輸入 Collection 元數據 (Metadata) 欄位內容
+        {{ t("upload.dynamicInputs") }}
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div v-for="field in dynamicFieldsToRender" :key="field.name">
@@ -453,7 +449,7 @@ function clearQueue() {
               @click.stop="toggleDynamicSelect(field.name)"
               class="w-full px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-800 dark:text-white flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
             >
-              <span class="truncate">{{ dynamicFieldValues[field.name] || '請選擇...' }}</span>
+              <span class="truncate">{{ dynamicFieldValues[field.name] || 'Select Option...' }}</span>
               <ChevronDown class="w-3.5 h-3.5 text-neutral-400 transition-transform shrink-0 ml-1" :class="{ 'rotate-180': openDynamicSelects[field.name] }" />
             </button>
             
@@ -466,7 +462,7 @@ function clearQueue() {
                 class="px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer flex items-center justify-between"
                 :class="{ 'font-semibold bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400': !dynamicFieldValues[field.name] }"
               >
-                <span>請選擇...</span>
+                <span>Select Option...</span>
                 <Check v-if="!dynamicFieldValues[field.name]" class="w-3.5 h-3.5 text-indigo-500" />
               </div>
               <div
@@ -514,24 +510,24 @@ function clearQueue() {
         :class="isDragging ? 'text-indigo-500 scale-110' : 'text-neutral-400 dark:text-neutral-500'"
       />
       <div class="text-sm font-semibold text-neutral-800 dark:text-white mb-1">
-        拖放檔案至此處，或點擊選取檔案上傳
+        {{ t("upload.dragTip") }}
       </div>
       <p class="text-xs text-neutral-400">
-        {{ activeTemplate ? `當前模板：${activeTemplate.name}` : '請先選取上傳模板' }}
+        {{ activeTemplate ? t("tray.activeTemplate", activeTemplate.name) : t("upload.errorNoTemplate") }}
       </p>
     </div>
 
     <!-- 上傳佇列列表 -->
     <div v-if="uploadQueue.length > 0" class="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200/80 dark:border-neutral-700/80 shadow-sm p-6 flex flex-col gap-4 min-h-35 md:max-h-70 md:flex-1 md:min-h-0 md:shrink">
       <div class="flex items-center justify-between shrink-0">
-        <h3 class="font-bold text-neutral-800 dark:text-white text-base">上傳進度</h3>
+        <h3 class="font-bold text-neutral-800 dark:text-white text-base">{{ t("upload.fileInfo") }}</h3>
         <div class="flex gap-2">
           <button
             @click="clearQueue"
             :disabled="isUploading"
             class="px-3 py-1 text-neutral-400 hover:text-neutral-600 disabled:opacity-40 rounded-xl text-xs font-semibold cursor-pointer"
           >
-            清除佇列
+            {{ t("common.cancel") }}
           </button>
         </div>
       </div>
@@ -566,7 +562,7 @@ function clearQueue() {
                 @click="copySingleItem(item)"
                 class="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg cursor-pointer transition-colors flex items-center justify-center"
                 :class="copiedItemIds[item.id] ? 'text-emerald-500' : 'text-neutral-500 hover:text-indigo-600 dark:text-neutral-400 dark:hover:text-indigo-400'"
-                :title="copiedItemIds[item.id] ? '已複製！' : '複製此連結'"
+                :title="copiedItemIds[item.id] ? t('common.copied') : t('history.copyLink')"
               >
                 <Check v-if="copiedItemIds[item.id]" class="w-3.5 h-3.5" />
                 <Copy v-else class="w-3.5 h-3.5" />

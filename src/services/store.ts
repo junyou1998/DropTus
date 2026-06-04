@@ -1,6 +1,7 @@
 import { reactive, ref } from "vue";
 import { getAuthState, saveAuthState, Profile, UploadTemplate, getFolders, Folder, setOnTokenRefreshed } from "./directus";
 import { Store } from "@tauri-apps/plugin-store";
+import { locale, detectLocale, LocaleType } from "./i18n";
 
 export interface UploadHistoryItem {
   id: string;
@@ -21,6 +22,7 @@ export const appState = reactive({
   theme: "system" as "light" | "dark" | "system",
   folders: [] as Folder[],
   sidebarCollapsed: false,
+  language: "" as string, // 空字串代表自動偵測系統語系
 });
 
 export const activeProfile = ref<Profile | null>(null);
@@ -31,6 +33,14 @@ let store: Store | null = null;
 async function getStore() {
   if (!store) store = await Store.load("settings.json");
   return store;
+}
+
+export function updateLocale() {
+  if (appState.language) {
+    locale.value = appState.language as LocaleType;
+  } else {
+    locale.value = detectLocale();
+  }
 }
 
 export async function updateTheme() {
@@ -60,10 +70,12 @@ export async function saveAppState() {
     activeTemplateId: appState.activeTemplateId,
     templates: appState.templates,
     sidebarCollapsed: appState.sidebarCollapsed,
+    language: appState.language,
   });
   activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
   activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
   updateTheme();
+  updateLocale();
   await refreshFolders();
 }
 
@@ -75,11 +87,13 @@ export async function syncAppStateWithStore() {
   appState.templates = auth.templates;
   appState.theme = auth.theme;
   appState.sidebarCollapsed = !!auth.sidebarCollapsed;
+  appState.language = auth.language || "";
 
   activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
   activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
 
   updateTheme();
+  updateLocale();
   await refreshFolders();
 }
 
@@ -91,6 +105,7 @@ export async function initApp() {
   appState.templates = auth.templates;
   appState.theme = auth.theme;
   appState.sidebarCollapsed = !!auth.sidebarCollapsed;
+  appState.language = auth.language || "";
 
   activeProfile.value = appState.profiles.find((p) => p.id === appState.activeProfileId) || null;
   activeTemplate.value = appState.templates.find((t) => t.id === appState.activeTemplateId) || null;
@@ -100,6 +115,7 @@ export async function initApp() {
   history.value = savedHistory || [];
 
   updateTheme();
+  updateLocale();
 
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
     if (appState.theme === "system") {
